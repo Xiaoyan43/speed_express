@@ -1,5 +1,10 @@
 const mongoose = require('../db/mongodb');
+const {Types} = require("mongoose");
 const UserSubmitSchema = new mongoose.Schema({
+    _id: {
+        type: Types.ObjectId,
+        auto: true,
+    },
     title: {
         type: String,
         required: true,
@@ -45,6 +50,18 @@ const UserSubmitSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    claim: {
+        type: String
+    },
+    resultOfEvidence: {
+        type: String
+    },
+    type: {
+        type: String
+    },
+    participant: {
+        type: String
+    }
 });
 
 const UserSubmit = mongoose.model('UserSubmit', UserSubmitSchema);

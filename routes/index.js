@@ -84,8 +84,26 @@ router.get('/userSubmitOfStatus', async (req, res) => {
         .skip((pageNumber - 1) * pageSize)
         .limit(pageSize);
 
+    const userSubmitWithRating = [];
+
+    for (const item of userSubmit) {
+      const itemRatings = await Rating.find({ userSubmitId: item._id });
+      const ratingCount = itemRatings.length;
+      let totalRating = 0;
+
+      itemRatings.forEach((rating) => {
+        totalRating += rating.rating;
+      });
+
+      const rating = ratingCount > 0 ? totalRating / ratingCount : 0;
+      const itemWithRating = {
+        ...item._doc,
+        rating,
+      };
+      userSubmitWithRating.push(itemWithRating);
+    }
     res.status(200).json({
-      data: userSubmit,
+      data: userSubmitWithRating,
       meta: {
         totalItems,
         totalPages,
@@ -110,13 +128,13 @@ router.put('/userSubmit/:id', async (req, res) => {
     );
 
     if (!userSubmit) {
-      return res.status(404).json({ message: 'Article not found' });
+      return res.status(404).json({ message: 'userSubmit not found' });
     }
 
-    res.status(200).json({ message: 'Article updated successfully' });
+    res.status(200).json({ message: 'userSubmit updated successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Failed to update article' });
+    res.status(500).json({ message: 'Failed to update userSubmit' });
   }
 });
 
@@ -144,6 +162,7 @@ router.post('/register', async (req, res) => {
 
 // User login
 const jwt = require('jsonwebtoken');
+const Rating = require("../src/model/RatingSchema");
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -166,4 +185,56 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.put('/analyze/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { claim, resultOfEvidence, type, participant } = req.body;
+    const status = 3;
+
+    const userSubmit = await UserSubmit.findById(id);
+
+    if (!userSubmit) {
+      return res.status(404).json({ message: 'userSubmit not found' });
+    }
+
+    userSubmit.claim = claim;
+    userSubmit.resultOfEvidence = resultOfEvidence;
+    userSubmit.type = type;
+    userSubmit.participant = participant;
+    userSubmit.status = status;
+
+    const updatedUserSubmit = await userSubmit.save();
+
+    res.status(200).json({
+      message: 'userSubmit updated successfully',
+      data: updatedUserSubmit, // Include the updated data in the response
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to update userSubmit' });
+  }
+});
+
+router.post('/rateItem', async (req, res) => {
+  try {
+    const { rating, userSubmitId } = req.body;
+
+    // Create a new Rating document to store the rating information
+    const newRating = new Rating({
+      userSubmitId: userSubmitId,
+      rating: rating,
+    });
+
+    // Save the new rating document
+    const savedRating = await newRating.save();
+
+    res.status(200).json({
+      message: 'Rating submitted successfully',
+      data: savedRating,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to submit rating' });
+  }
+});
 module.exports = router;
