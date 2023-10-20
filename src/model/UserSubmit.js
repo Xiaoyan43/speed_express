@@ -61,6 +61,9 @@ const UserSubmitSchema = new mongoose.Schema({
     },
     participant: {
         type: String
+    },
+    submitEmail: {
+        type: String
     }
 });
 

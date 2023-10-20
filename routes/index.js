@@ -2,6 +2,8 @@ var express = require('express');
 var router = express.Router();
 const UserSubmit = require('../src/model/UserSubmit');
 const User = require("../src/model/UserSchema");
+const sendEmail = require("../src/utils/mailUtil");
+const { query, validationResult } = require('express-validator');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -202,9 +204,20 @@ router.put('/analyze/:id', async (req, res) => {
     userSubmit.type = type;
     userSubmit.participant = participant;
     userSubmit.status = status;
-
     const updatedUserSubmit = await userSubmit.save();
 
+    // Call the sendEmail method
+    sendEmail(updatedUserSubmit.submitEmail, 'Email Subject', 'Email Content')
+        .then((success) => {
+          if (success) {
+            console.log('Email sent successfully');
+          } else {
+            console.log('Failed to send email');
+          }
+        })
+        .catch((error) => {
+          console.error('An error occurred while sending the email:', error);
+        });
     res.status(200).json({
       message: 'userSubmit updated successfully',
       data: updatedUserSubmit, // Include the updated data in the response
@@ -237,4 +250,7 @@ router.post('/rateItem', async (req, res) => {
     res.status(500).json({ message: 'Failed to submit rating' });
   }
 });
+
+
+
 module.exports = router;
