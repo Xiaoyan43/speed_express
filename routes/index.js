@@ -251,6 +251,64 @@ router.post('/rateItem', async (req, res) => {
   }
 });
 
+// Search endpoint
+router.get('/userSubmit/search', [
+  query('query').notEmpty().withMessage('Query parameter is required.'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Invalid page number.'),
+  query('limit').optional().isInt({ min: 1 }).withMessage('Invalid limit value.')
+], async (req, res) => {
+  try {
+    // Validate the request query parameters
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { query: searchQuery, page = 1, limit = 10 } = req.query;
+    const pageNumber = parseInt(page);
+    const pageSize = parseInt(limit);
+
+    // Prepare the search conditions
+    const searchConditions = {
+      status: 3,
+      $or: [
+        { title: { $regex: searchQuery, $options: 'i' } },
+        { authors: { $regex: searchQuery, $options: 'i' } },
+        { journal: { $regex: searchQuery, $options: 'i' } },
+        { year: { $regex: searchQuery, $options: 'i' } },
+        { volume: { $regex: searchQuery, $options: 'i' } },
+        { number: { $regex: searchQuery, $options: 'i' } },
+        { pages: { $regex: searchQuery, $options: 'i' } },
+        { doi: { $regex: searchQuery, $options: 'i' } },
+        { claim: { $regex: searchQuery, $options: 'i' } },
+        { resultOfEvidence: { $regex: searchQuery, $options: 'i' } },
+        { type: { $regex: searchQuery, $options: 'i' } },
+        { participant: { $regex: searchQuery, $options: 'i' } },
+        { submitEmail: { $regex: searchQuery, $options: 'i' } },
+      ],
+    };
+
+    // Perform the search with pagination
+    const totalItems = await UserSubmit.countDocuments(searchConditions);
+    const totalPages = Math.ceil(totalItems / pageSize);
+
+    const searchResult = await UserSubmit.find(searchConditions)
+        .skip((pageNumber - 1) * pageSize)
+        .limit(pageSize);
+
+    res.json({
+      data: searchResult,
+      meta: {
+        totalItems,
+        totalPages,
+        currentPage: pageNumber,
+      },
+    });
+  } catch (error) {
+    console.error('Error searching UserSubmit:', error);
+    res.status(500).json({ error: 'An error occurred while searching.' });
+  }
+});
 
 
 module.exports = router;
