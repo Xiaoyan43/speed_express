@@ -1,5 +1,5 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 const UserSubmit = require('../src/model/UserSubmit');
 const User = require("../src/model/UserSchema");
 const sendEmail = require("../src/utils/mailUtil");
@@ -21,7 +21,8 @@ router.post('/userSubmit', async (req, res) => {
       volume,
       number,
       pages,
-      doi
+      doi,
+      email
     } = req.body;
 
     const userSubmit = new UserSubmit({
@@ -32,7 +33,8 @@ router.post('/userSubmit', async (req, res) => {
       volume,
       number,
       pages,
-      doi
+      doi,
+      'submitEmail': email
     });
 
     await userSubmit.save();
@@ -133,6 +135,35 @@ router.put('/userSubmit/:id', async (req, res) => {
       return res.status(404).json({ message: 'userSubmit not found' });
     }
 
+    if (status == '1'){
+      // Call the sendEmail method
+      sendEmail(userSubmit.submitEmail, 'examine result', 'rejected')
+          .then((success) => {
+            if (success) {
+              console.log('Email sent successfully');
+            } else {
+              console.log('Failed to send email');
+            }
+          })
+          .catch((error) => {
+            console.error('An error occurred while sending the email:', error);
+          });
+    }
+
+    if (status == '2'){
+      // Call the sendEmail method
+      sendEmail(userSubmit.submitEmail, 'examine result', 'passed successfully')
+          .then((success) => {
+            if (success) {
+              console.log('Email sent successfully');
+            } else {
+              console.log('Failed to send email');
+            }
+          })
+          .catch((error) => {
+            console.error('An error occurred while sending the email:', error);
+          });
+    }
     res.status(200).json({ message: 'userSubmit updated successfully' });
   } catch (error) {
     console.error(error);
@@ -207,7 +238,7 @@ router.put('/analyze/:id', async (req, res) => {
     const updatedUserSubmit = await userSubmit.save();
 
     // Call the sendEmail method
-    sendEmail(updatedUserSubmit.submitEmail, 'Email Subject', 'Email Content')
+    sendEmail(updatedUserSubmit.submitEmail, 'analyze result', 'passed successfully')
         .then((success) => {
           if (success) {
             console.log('Email sent successfully');
@@ -284,7 +315,6 @@ router.get('/userSubmit/search', [
         { resultOfEvidence: { $regex: searchQuery, $options: 'i' } },
         { type: { $regex: searchQuery, $options: 'i' } },
         { participant: { $regex: searchQuery, $options: 'i' } },
-        { submitEmail: { $regex: searchQuery, $options: 'i' } },
       ],
     };
 
